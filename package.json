@@ -1,0 +1,20 @@
+{
+  "name": "multitranslate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cld": "^2.8.4",
+    "country-iso-3-to-2": "^1.1.1",
+    "franc": "^6.0.0",
+    "iso-language-converter": "^1.1.0",
+    "languagedetect": "^2.0.0",
+    "languages.io": "^0.9.1"
+  }
+}
