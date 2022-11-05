@@ -1,7 +1,7 @@
 import cld from 'cld';
 import LanguageDetect from 'languagedetect';
 import { franc, francAll } from 'franc';
-import getCountryISO2 from "country-iso-3-to-2";
+import getCountryISO2 from 'country-iso-3-to-2';
 
 async function detectSingleViaCLD(title) {
     // promise resolve is in format {code:ISO, percent:confidence%}
@@ -25,7 +25,7 @@ async function detectSingleViaCLD(title) {
     });
 }
 
-async function detectLanguageViaCLD(titles) {
+export async function detectLanguageViaCLD(titles) {
     return new Promise((resolve, reject) => {
         let promises = [];
         for (let title of titles) {
@@ -64,7 +64,7 @@ async function detectSingleViaLanguageDetect(title) {
     });
 }
 
-async function detectLanguageViaLanguageDetect(titles) {
+export async function detectLanguageViaLanguageDetect(titles) {
     return new Promise((resolve, reject) => {
         let promises = [];
         for (let title of titles) {
@@ -94,7 +94,7 @@ async function detectSingleViaFranc(title) {
     });
 }
 
-async function detectLanguageViaFranc(titles) {
+export async function detectLanguageViaFranc(titles) {
     return new Promise((resolve, reject) => {
         let promises = [];
         for (let title of titles) {
@@ -194,8 +194,3 @@ test([
     "0 помощи блядь НОЛЬ ПОМОЩИИИ!",
     "обмоханый"
 ]);
-
-const _detectLanguageViaCLD = detectLanguageViaCLD;
-export { _detectLanguageViaCLD as detectLanguageViaCLD };
-const _detectLanguageViaLanguageDetect = detectLanguageViaLanguageDetect;
-export { _detectLanguageViaLanguageDetect as detectLanguageViaLanguageDetect };
