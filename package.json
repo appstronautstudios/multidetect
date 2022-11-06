@@ -1,7 +1,7 @@
 {
   "name": "multitranslate",
   "version": "1.0.0",
-  "description": "",
+  "description": "Combines several different language detection libraries (which all have strengths and weaknesses) to try and determine whether a string is in your expected language.",
   "main": "index.js",
   "type": "module",
   "scripts": {
