@@ -66,11 +66,10 @@ async function detectSingleViaFranc(title) {
 }
 
 /**
- * goes through inputs and for each one checks if the expected language is detected
- * above confidence threshold. Uses the method supplied. Returns an 
- * @param {*} inputs 
- * @param {*} expected 
- * @param {*} method 
+ * Iterates through inputs and and performs chosen language detection against it.
+ * @param {*} inputs strings to detect against
+ * @param {*} expected ISO-2 code of expected language
+ * @param {*} method detection lib to use. Options are "cld", "ld", "franc"
  * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT, text:INPUT}, ...]
  */
 export async function languageConfidence(inputs, expected, method) {
@@ -108,7 +107,32 @@ export async function languageConfidence(inputs, expected, method) {
     });
 }
 
-async function test(testSet) {
+/**
+ * Similar to languageConfidence except it performs ALL supported language detection methods and records the BEST confidence
+ * @param {*} inputs strings to detect against
+ * @param {*} expected ISO-2 code of expected language
+ * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT, text:INPUT}, ...]
+ */
+export async function languageConfidenceAll(inputs, expected) {
+    let cldResults = await languageConfidence(inputs, expected, "cld");
+    let languageDetectResults = await languageConfidence(inputs, expected, "ld");
+    let francResults = await languageConfidence(inputs, expected, "franc");
+    let output = [];
+    for (let i = 0; i < inputs.length; i++) {
+        let cldConfidence = (cldResults[i].code != null) ? cldResults[i].percent : 0;
+        let ldConfidence = (languageDetectResults[i].code) ? languageDetectResults[i].percent : 0;
+        let francConfidence = (francResults[i].code != null) ? francResults[i].percent : 0;
+        let bestConfidence = Math.max(cldConfidence, ldConfidence, francConfidence);
+        output.push({
+            code: expected,
+            percent: bestConfidence,
+            text: inputs[i]
+        });
+    }
+    return output;
+}
+
+async function testIndividual(testSet) {
     const DIVIDER = "==========";
     const THRESHOLD = 75;
     let cloudTranslate = null;
@@ -160,8 +184,13 @@ async function test(testSet) {
     console.log("all rate: " + allSuccesses / testSet.length);
 }
 
-// test(["Он уже накопил,алло стример"]);
-// test([
+async function testAll(testSet) {
+    let results = await languageConfidenceAll(testSet, "ru");
+    console.log(results);
+}
+
+// testIndividual(["Он уже накопил,алло стример"]);
+// testAll([
 //     "ФИДЕРЫ",
 //     "Челка мешат",
 //     "C 3000 до 6000 ЗА 5 ДНЕЙ ЛИБО НОВАЯ СТРИЖКА (ДЕНЬ4 3500)",
