@@ -65,14 +65,36 @@ async function detectSingleViaFranc(title) {
     });
 }
 
+function mergeResults(resultArrays) {
+    let output = [];
+    let dict = {};
+    for (let resultArray of resultArrays) {
+        for (let result of resultArray) {
+            let code = result.code;
+            let percent = result.percent;
+            if (dict[code] == null || dict[code] < percent) {
+                dict[code] = percent
+            }
+        }
+    }
+    // convert back to array format
+    for (let key of Object.keys(dict)) {
+        output.push({
+            code: key,
+            percent: dict[key]
+        });
+    }
+    // done
+    return output;
+}
+
 /**
  * Iterates through inputs and and performs chosen language detection against it.
  * @param {*} inputs strings to detect against
- * @param {*} expected ISO-2 code of expected language
  * @param {*} method detection lib to use. Options are "cld", "ld", "franc"
- * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT, text:INPUT}, ...]
+ * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT}, ...]
  */
-export async function languageConfidence(inputs, expected, method) {
+export async function languageConfidence(inputs, method) {
     return new Promise((resolve, reject) => {
         let promises = [];
         for (let input of inputs) {
@@ -87,49 +109,54 @@ export async function languageConfidence(inputs, expected, method) {
             }
         }
         Promise.all(promises).then((results) => {
-            let matches = [];
-            for (let i = 0; i < results.length; i++) {
-                let output = {};
-                let input = inputs[i];
-                let matchSet = results[i];
-                for (let match of matchSet) {
-                    if (match.code == expected) {
-                        output.code = match.code;
-                        output.percent = match.percent;
-                        break;
-                    }
-                }
-                output.text = input;
-                matches.push(output);
-            }
-            return resolve(matches);
+            return resolve(results);
         });
     });
 }
 
 /**
- * Similar to languageConfidence except it performs ALL supported language detection methods and records the BEST confidence
+ * Similar to languageConfidence except it performs ALL supported language detection methods and records the BEST
+ * confidence for each language detected in each input string
  * @param {*} inputs strings to detect against
- * @param {*} expected ISO-2 code of expected language
- * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT, text:INPUT}, ...]
+ * @returns array of results corresponding to the inputs in the following format [{code:ISO, percent:FLOAT}, ...]
  */
-export async function languageConfidenceAll(inputs, expected) {
-    let cldResults = await languageConfidence(inputs, expected, "cld");
-    let languageDetectResults = await languageConfidence(inputs, expected, "ld");
-    let francResults = await languageConfidence(inputs, expected, "franc");
+export async function languageConfidenceAll(inputs) {
+    let cldResults = await languageConfidence(inputs, "cld");
+    let languageDetectResults = await languageConfidence(inputs, "ld");
+    let francResults = await languageConfidence(inputs, "franc");
     let output = [];
     for (let i = 0; i < inputs.length; i++) {
-        let cldConfidence = (cldResults[i].code != null) ? cldResults[i].percent : 0;
-        let ldConfidence = (languageDetectResults[i].code) ? languageDetectResults[i].percent : 0;
-        let francConfidence = (francResults[i].code != null) ? francResults[i].percent : 0;
-        let bestConfidence = Math.max(cldConfidence, ldConfidence, francConfidence);
-        output.push({
-            code: expected,
-            percent: bestConfidence,
-            text: inputs[i]
-        });
+        let inputDetection = mergeResults([cldResults[i], languageDetectResults[i], francResults[i]]);
+        output.push(inputDetection);
     }
     return output;
+}
+
+/**
+ * Given a set of inputs, checks to see if string matches your expected language. To cut down on false negatives
+ * and false positives this will only return TRUE if a language is detected above your provided threshold AND
+ * that language is not your expected language AND your expected language is not also above threshold. This final
+ * check is performed because some languages have a lot of mutually intelligible words and phrases.
+ * @param {*} inputs strings to detect against
+ * @param {*} expected ISO-2 code of expected language
+ * @param {*} treshold minimum percent threshold for a match to be considered valid
+ * @returns array of booleans corresponding to the inputs indicating if there was a mismatch or not
+ */
+export async function languageMismatch(inputs, expected, threshold) {
+    let mismatches = [];
+    let results = await languageConfidenceAll(inputs);
+    for (let result of results) {
+        let expectedMatch = false;
+        let unexpectedMatch = false;
+        for (let language of result) {
+            if (language.percent > threshold) {
+                if (language.code == expected) expectedMatch = true;
+                else unexpectedMatch = true;
+            }
+        }
+        mismatches.push(unexpectedMatch && !expectedMatch);
+    }
+    return mismatches;
 }
 
 async function testIndividual(testSet) {
@@ -185,8 +212,11 @@ async function testIndividual(testSet) {
 }
 
 async function testAll(testSet) {
-    let results = await languageConfidenceAll(testSet, "ru");
+    console.log(testSet);
+    let results = await languageConfidenceAll(testSet);
     console.log(results);
+    let mismatches = await languageMismatch(testSet, "ru", 75)
+    console.log(mismatches);
 }
 
 // testIndividual(["Он уже накопил,алло стример"]);
@@ -210,5 +240,7 @@ async function testAll(testSet) {
 //     "понесло",
 //     "плачу на техно feat. rainypa1n",
 //     "0 помощи блядь НОЛЬ ПОМОЩИИИ!",
-//     "обмоханый"
+//     "обмоханый",
+//     "Pourriez-vous m'aider?",
+//     "This is an english sentence"
 // ]);
