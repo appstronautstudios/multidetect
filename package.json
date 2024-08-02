@@ -12,6 +12,7 @@
   "dependencies": {
     "cld": "^2.8.4",
     "country-iso-3-to-2": "^1.1.1",
+    "fasttext": "^1.0.0",
     "franc": "^6.0.0",
     "iso-language-converter": "^1.1.0",
     "languagedetect": "^2.0.0",
